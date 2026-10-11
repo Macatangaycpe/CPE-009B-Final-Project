@@ -124,13 +124,37 @@ def login(mobile_number, pin, users):
 
 ####TRANSACTION####
 
-
 from dataclasses import dataclass
 from typing import Dict, Union, List, Any
+from datetime import datetime
 
 
-# PAYMENT TRANSACTION MODULE
+# SHARED GLOBAL SEQUENCE AND RECEIPT GENERATOR
 
+global_sequence = 1
+
+#reference number generator
+def generate_reference_number(transaction_type: str, sequence_value: int) -> str:
+    prefix = transaction_type[:3].upper()
+    return f"{prefix}-{sequence_value:09d}"
+
+#Receipt generator
+def create_receipt(transaction_type: str, name: str, amount: float, account_details: str, sequence_value: int) -> Dict[str, Any]:
+    """Generating The Transaction Receipt..."""
+    return {
+        "Status": "Success",
+        "Transaction Type": transaction_type,
+        "Transaction Number": generate_reference_number(transaction_type, sequence_value),
+        "Name": name,
+        "Amount": amount,
+        "Account Details": account_details,
+        "Date": datetime.now().strftime("%Y-%m-%d"),
+        "Time": datetime.now().strftime("%H:%M:%S")
+    }
+
+
+# PAYMENT TRANSACTION 
+#choices dictionary
 PAYMENT_STRUCTURE = {
     "Bills": ["government", "electricity", "internet", "water"],
     "Bank": ["loans", "transfer"],
@@ -149,103 +173,110 @@ def validate_payment(details: payment_details) -> bool:
     cat = details.category.capitalize() if details.category else ""
     subcat = details.subcategory.lower() if details.subcategory else ""
 
-    # Check if category exists
-    if cat not in PAYMENT_STRUCTURE:
-        return False
-
-    if subcat not in PAYMENT_STRUCTURE[cat]:
+    if cat not in PAYMENT_STRUCTURE or subcat not in PAYMENT_STRUCTURE[cat]:
         return False    
-
-    # Check required text fields and positive amount
     if not details.biller or not details.account_reference or details.amount <= 0:
         return False
-        
     return True
 
-#shared global sequence counter for ALL transactions
-global_sequence = 1
-
-def payment_reference_number(sequence_value: int) -> str:
-    return f"PAY-{sequence_value:09d}"
-
-# Confirmation and processing for payment transactions
 def confirm_payment(details: payment_details) -> Dict[str, Union[str, float, bool, None]]:
     global global_sequence
     
     if not validate_payment(details):
-        return {
-            "Status": "Failed",
-            "Message": "Invalid Payment Category or Transaction Details",
-            "Data": None
-        }
+        return {"Status": "Failed", "Message": "Invalid Payment Category or Details", "Data": None}
     
-    ref_num = payment_reference_number(global_sequence)
+    current_sequence = global_sequence
     global_sequence += 1
     
-    payment_info = {
-        "Status": "Success",
-        "Reference Number": ref_num,
-        "Category": details.category.capitalize(),
-        "Subcategory": details.subcategory.title(),
-        "Biller/Provider": details.biller,
-        "Account/Reference": details.account_reference,
-        "Amount": details.amount,
-    }
-    
-    return payment_info
+    return create_receipt(
+        transaction_type="Payment",
+        name=details.biller,
+        amount=details.amount,
+        account_details=f"Category: {details.category.capitalize()} / Sub: {details.subcategory.title()} / Ref: {details.account_reference}",
+        sequence_value=current_sequence
+    )
 
-# SEND TRANSACTION MODULE
 
-# Storing account details using data class instead of the usual class declaration
+# SEND TRANSACTION 
+
 @dataclass
 class account_details:
     account_number: str
     account_name: str
     amount: float
 
-# Enter account details 
 def validate_account(account_number: str, account_name: str) -> bool:
-    # Validation via number or name
-    if not account_number or not account_name:
-        return False
-    return True
+    return bool(account_number and account_name)
 
-# Amount // checks if the amount is not zero or less than 0
 def validate_amount(amount: float) -> bool:
     return amount > 0
 
-# Generates reference number
-def reference_number(sequence_value: int) -> str:
-    return f"{sequence_value:012d}"
-
-# Confirmation // check transaction details via dictionary using the combination of string, float and boolean in the save file
 def confirm_transaction(details: account_details) -> Dict[str, Union[str, float, bool, None]]:
     global global_sequence
     
-    # Confirmation step
-    is_valid_account = validate_account(details.account_number, details.account_name)
-    is_valid_amount = validate_amount(details.amount)
+    if not (validate_account(details.account_number, details.account_name) and validate_amount(details.amount)):
+        return {"Status": "Failed", "Message": "Invalid Transaction", "Data": None}
     
-    #Returns the status, the failed transaction message and no data
-    if not (is_valid_account and is_valid_amount):
-        return {
-            "Status" : "Failed",
-            "Message": "Invalid Transaction",
-            "Data" : None
-        }
-    
-    ref_num = reference_number(global_sequence)
+    current_sequence = global_sequence
     global_sequence += 1
 
-    # Displays transaction info 
-    transaction_info = {
-        "Status" : "Success",
-        "Reference Number" : ref_num,
-        "Account Name" : details.account_name,
-        "Account Number" : details.account_number,
-        "Amount" : details.amount,
-    }
+    return create_receipt(
+        transaction_type="Send",
+        name=details.account_name,
+        amount=details.amount,
+        account_details=details.account_number,
+        sequence_value=current_sequence
+    )
+
+# DEPOSIT TRANSACTION
+
+@dataclass
+class deposit_details:
+    source: str
+    account_name: str
+    amount: float
+
+def confirm_deposit(details: deposit_details) -> Dict[str, Union[str, float, bool, None]]:
+    global global_sequence
     
-    return transaction_info
+    if not details.source or not details.account_name or details.amount <= 0:
+        return {"Status": "Failed", "Message": "Invalid Deposit Details", "Data": None}
+    
+    current_sequence = global_sequence
+    global_sequence += 1
+
+    return create_receipt(
+        transaction_type="Deposit",
+        name=details.account_name,
+        amount=details.amount,
+        account_details=f"Source: {details.source}",
+        sequence_value=current_sequence
+    )
+
+# WITHDRAW TRANSACTION 
+
+@dataclass
+class withdraw_details:
+    destination: str
+    account_name: str
+    account_number: str
+    amount: float
+
+def confirm_withdraw(details: withdraw_details) -> Dict[str, Union[str, float, bool, None]]:
+    global global_sequence
+    
+    if not details.destination or not details.account_name or not details.account_number or details.amount <= 0:
+        return {"Status": "Failed", "Message": "Invalid Withdrawal Details", "Data": None}
+    
+    current_sequence = global_sequence
+    global_sequence += 1
+
+    return create_receipt(
+        transaction_type="Withdraw",
+        name=details.account_name,
+        amount=details.amount,
+        account_details=f"Destination: {details.destination} / Account No: {details.account_number}",
+        sequence_value=current_sequence
+    )
 
 
