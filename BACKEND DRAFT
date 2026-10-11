@@ -125,41 +125,108 @@ def login(mobile_number, pin, users):
 ####TRANSACTION####
 
 
-#send transaction
 from dataclasses import dataclass
-from typing import Dict, Any, Union
+from typing import Dict, Union, List, Any
 
-#storing account details using data class instead of the usual class declaration
+
+# PAYMENT TRANSACTION MODULE
+
+PAYMENT_STRUCTURE = {
+    "Bills": ["government", "electricity", "internet", "water"],
+    "Bank": ["loans", "transfer"],
+    "Credits": ["shopping", "games", "load"]
+}
+
+@dataclass
+class payment_details:
+    category: str
+    subcategory: str
+    biller: str
+    account_reference: str
+    amount: float
+
+def validate_payment(details: payment_details) -> bool:
+    cat = details.category.capitalize() if details.category else ""
+    subcat = details.subcategory.lower() if details.subcategory else ""
+
+    # Check if category exists
+    if cat not in PAYMENT_STRUCTURE:
+        return False
+
+    if subcat not in PAYMENT_STRUCTURE[cat]:
+        return False    
+
+    # Check required text fields and positive amount
+    if not details.biller or not details.account_reference or details.amount <= 0:
+        return False
+        
+    return True
+
+#shared global sequence counter for ALL transactions
+global_sequence = 1
+
+def payment_reference_number(sequence_value: int) -> str:
+    return f"PAY-{sequence_value:09d}"
+
+# Confirmation and processing for payment transactions
+def confirm_payment(details: payment_details) -> Dict[str, Union[str, float, bool, None]]:
+    global global_sequence
+    
+    if not validate_payment(details):
+        return {
+            "Status": "Failed",
+            "Message": "Invalid Payment Category or Transaction Details",
+            "Data": None
+        }
+    
+    ref_num = payment_reference_number(global_sequence)
+    global_sequence += 1
+    
+    payment_info = {
+        "Status": "Success",
+        "Reference Number": ref_num,
+        "Category": details.category.capitalize(),
+        "Subcategory": details.subcategory.title(),
+        "Biller/Provider": details.biller,
+        "Account/Reference": details.account_reference,
+        "Amount": details.amount,
+    }
+    
+    return payment_info
+
+# SEND TRANSACTION MODULE
+
+# Storing account details using data class instead of the usual class declaration
 @dataclass
 class account_details:
     account_number: str
     account_name: str
     amount: float
 
-#enter account details 
+# Enter account details 
 def validate_account(account_number: str, account_name: str) -> bool:
-    #validation via number or name
+    # Validation via number or name
     if not account_number or not account_name:
         return False
     return True
 
-#amount //checks if the amount is not zero or less than 0
+# Amount // checks if the amount is not zero or less than 0
 def validate_amount(amount: float) -> bool:
     return amount > 0
 
-#generates a random 12 digit reference number
+# Generates reference number
 def reference_number(sequence_value: int) -> str:
     return f"{sequence_value:012d}"
 
-current_sequence = 1
-
-#confirmation //check transaction details via dictionary using the combination of string, float and boolean in the save file
+# Confirmation // check transaction details via dictionary using the combination of string, float and boolean in the save file
 def confirm_transaction(details: account_details) -> Dict[str, Union[str, float, bool, None]]:
-    # confirmation step
+    global global_sequence
+    
+    # Confirmation step
     is_valid_account = validate_account(details.account_number, details.account_name)
     is_valid_amount = validate_amount(details.amount)
     
-    # returns the status, the failed transaction message and no data
+    #Returns the status, the failed transaction message and no data
     if not (is_valid_account and is_valid_amount):
         return {
             "Status" : "Failed",
@@ -167,25 +234,18 @@ def confirm_transaction(details: account_details) -> Dict[str, Union[str, float,
             "Data" : None
         }
     
-    # displays transaction info using stored value from dictionary
+    ref_num = reference_number(global_sequence)
+    global_sequence += 1
+
+    # Displays transaction info 
     transaction_info = {
         "Status" : "Success",
-        "Reference Number" : reference_number(current_sequence),
+        "Reference Number" : ref_num,
         "Account Name" : details.account_name,
         "Account Number" : details.account_number,
         "Amount" : details.amount,
     }
     
-    return transaction_info 
-
-    
-if __name__ == "__main__":
-    req = account_details(
-        account_number=
-        account_name=
-        amount=
-    )
-    result = confirm_transaction(req)
-    print(result)
+    return transaction_info
 
 
