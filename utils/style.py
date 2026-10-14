@@ -85,4 +85,9 @@ QFrame.card {
     border-radius: 4px;
     padding: 20px;
 }
+
+QFrame.card QLabel {
+    background-color: transparent;
+    border: none;
+}
 """
