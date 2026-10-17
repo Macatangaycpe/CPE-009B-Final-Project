@@ -34,21 +34,25 @@ class MainMenuScreen(QWidget):
         self.send_btn = QPushButton("Send")
         self.send_btn.setProperty("class", "menuButton")
         self.send_btn.setMinimumHeight(100)
+        self.send_btn.clicked.connect(self.app_main.go_to_send)
         grid.addWidget(self.send_btn, 0, 0)
         
         self.pay_btn = QPushButton("Payment")
         self.pay_btn.setProperty("class", "menuButton")
         self.pay_btn.setMinimumHeight(100)
+        self.pay_btn.clicked.connect(self.app_main.go_to_payment)
         grid.addWidget(self.pay_btn, 0, 1)
         
         self.cashin_btn = QPushButton("Cash In")
         self.cashin_btn.setProperty("class", "menuButton")
         self.cashin_btn.setMinimumHeight(100)
+        self.cashin_btn.clicked.connect(self.app_main.go_to_cash_in)
         grid.addWidget(self.cashin_btn, 1, 0)
         
         self.cashout_btn = QPushButton("Cash Out")
         self.cashout_btn.setProperty("class", "menuButton")
         self.cashout_btn.setMinimumHeight(100)
+        self.cashout_btn.clicked.connect(self.app_main.go_to_cash_out)
         grid.addWidget(self.cashout_btn, 1, 1)
         
         layout.addLayout(grid)
