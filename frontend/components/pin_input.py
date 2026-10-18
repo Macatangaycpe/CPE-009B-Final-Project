@@ -4,6 +4,7 @@ from PyQt6.QtGui import QRegularExpressionValidator, QFont
 
 class PinInputWidget(QWidget):
     def __init__(self, parent=None):
+        """Build four centered, masked boxes that each accept one digit."""
         super().__init__(parent)
         layout = QHBoxLayout()
         layout.setSpacing(15)
@@ -20,8 +21,7 @@ class PinInputWidget(QWidget):
             line_edit.setFont(QFont("Arial", 24, QFont.Weight.Bold))
             line_edit.setValidator(validator)
             line_edit.textChanged.connect(self._text_changed)
-            
-            # Simple styling for pin boxes
+
             line_edit.setStyleSheet("""
                 QLineEdit {
                     background-color: #ffffff;
@@ -32,24 +32,27 @@ class PinInputWidget(QWidget):
                     border: 2px solid #195cbb;
                 }
             """)
-            
+
             self.inputs.append(line_edit)
             layout.addWidget(line_edit)
-        
+
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setLayout(layout)
 
     def _text_changed(self, text):
+        """Advance focus after a PIN box receives a digit."""
         sender = self.sender()
         if text:
             idx = self.inputs.index(sender)
             if idx < 3:
                 self.inputs[idx + 1].setFocus()
-    
+
     def get_pin(self):
+        """Return the PIN digits joined in display order."""
         return "".join([inp.text() for inp in self.inputs])
-    
+
     def clear(self):
+        """Erase all PIN digits and focus the first box."""
         for inp in self.inputs:
             inp.clear()
         self.inputs[0].setFocus()
