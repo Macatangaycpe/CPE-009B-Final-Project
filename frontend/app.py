@@ -1,5 +1,8 @@
+import ctypes
 import sys
+from pathlib import Path
 
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget
 
 from backend import storage
@@ -15,12 +18,14 @@ from frontend.screens.receipt import ReceiptScreen
 from frontend.screens.send_money import SendMoneyScreen
 from frontend.style import STYLE_SHEET
 
+ICON_PATH = str(Path(__file__).resolve().parent.parent / "assets" / "digicash.ico")
+
 
 class EWalletApp(QMainWindow):
     def __init__(self):
         """Load account state and create the wallet screen stack."""
         super().__init__()
-        self.setWindowTitle("E-Wallet")
+        self.setWindowTitle("DIGICASH")
         self.setFixedSize(450, 750)
         self.setStyleSheet(STYLE_SHEET)
         self.current_user = None
@@ -175,7 +180,11 @@ class EWalletApp(QMainWindow):
 
 def launch():
     """Create the wallet window and exit with the Qt event-loop status."""
+    if sys.platform == "win32":
+        # Make Windows show DIGICASH's icon in the taskbar, not Python's.
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("digicash.app")
     app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon(ICON_PATH))
     window = EWalletApp()
     window.show()
     sys.exit(app.exec())
